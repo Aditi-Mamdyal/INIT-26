@@ -30,15 +30,13 @@ function Signup() {
     });
 
     setLoading(false);
+if (error) {
+  setError(error.message);
+  return;
+}
 
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    navigate("/dashboard");
-  };
-
+navigate("/login");
+  }
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
 

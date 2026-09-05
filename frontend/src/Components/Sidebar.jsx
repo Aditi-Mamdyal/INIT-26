@@ -1,4 +1,3 @@
-
 import { NavLink } from "react-router-dom";
 
 function Sidebar({ isOpen, setIsOpen }) {
@@ -10,19 +9,24 @@ function Sidebar({ isOpen, setIsOpen }) {
       icon: "🏠"
     },
     {
-      name: "Transactions",
-      path: "/transactions",
-      icon: "💳"
+      name: "Portfolio",
+      path: "/portfolio",
+      icon: "💼"
     },
     {
-      name: "Analytics",
-      path: "/analytics",
-      icon: "📊"
+      name: "Optimization",
+      path: "/optimisation",
+      icon: "📈"
     },
     {
-      name: "Settings",
-      path: "/settings",
-      icon: "⚙️"
+      name: "Risk Controls",
+      path: "/risk-control",
+      icon: "🛡️"
+    },
+    {
+      name: "Scenarios",
+      path: "/scenarios",
+      icon: "⚡"
     }
   ];
 
@@ -93,4 +97,3 @@ function Sidebar({ isOpen, setIsOpen }) {
 }
 
 export default Sidebar;
-

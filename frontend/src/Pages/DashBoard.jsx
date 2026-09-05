@@ -1,34 +1,87 @@
-
 import StatCard from "../Components/StatCard";
-import RecentTrans from "../Components/RecentTrans";
+import RiskCard from "../Components/RiskCard";
+import AllocationChart from "../Components/AllocationChart";
 
 function Dashboard() {
   return (
     <main className="pt-20 p-8 bg-slate-100 min-h-screen">
 
-      <h1 className="text-3xl font-bold text-slate-800 mb-8">
-        Welcome back, Srushti!
-      </h1>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-800">
+          Portfolio Dashboard
+        </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <p className="text-slate-500 mt-2">
+          Monitor your capital, portfolio performance and risk.
+        </p>
+      </div>
+
+
+      {/* Main Statistics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
         <StatCard
-          title="Total Balance"
-          value="₹45,000"
+          title="Total Capital"
+          value="--"
         />
 
         <StatCard
-          title="Income"
-          value="₹25,000"
+          title="Portfolio Value"
+          value="--"
         />
 
         <StatCard
-          title="Expenses"
-          value="₹12,000"
+          title="Expected Return"
+          value="--"
+        />
+
+        <StatCard
+          title="Portfolio Risk"
+          value="--"
         />
 
       </div>
-      <RecentTrans />
+
+
+      {/* Risk & Liquidity */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+        <RiskCard
+          title="Liquidity Ratio"
+          value="--"
+          status="Waiting for data"
+        />
+
+        <RiskCard
+          title="Risk Status"
+          value="--"
+          status="Waiting for data"
+        />
+
+      </div>
+
+
+      {/* Allocation */}
+      <div className="mt-6">
+
+        <AllocationChart data={[]} />
+
+      </div>
+
+
+      {/* Recent Alerts */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 mt-6">
+
+        <h2 className="text-lg font-semibold text-slate-800">
+          Recent Risk Alerts
+        </h2>
+
+        <p className="text-sm text-slate-400 mt-4">
+          No risk alerts available.
+        </p>
+
+      </div>
 
     </main>
   );
