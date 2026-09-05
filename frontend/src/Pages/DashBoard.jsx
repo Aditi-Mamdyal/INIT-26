@@ -1,6 +1,7 @@
 import StatCard from "../Components/StatCard";
 import RiskCard from "../Components/RiskCard";
 import AllocationChart from "../Components/AllocationChart";
+import PerformanceChart from "../Components/PerformanceChart";
 
 function Dashboard() {
   return (
@@ -63,11 +64,13 @@ function Dashboard() {
 
 
       {/* Allocation */}
-      <div className="mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
 
-        <AllocationChart data={[]} />
+  <AllocationChart data={[]} />
 
-      </div>
+  <PerformanceChart data={[]} />
+
+</div>
 
 
       {/* Recent Alerts */}
