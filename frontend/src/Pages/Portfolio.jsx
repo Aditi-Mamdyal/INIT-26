@@ -1,14 +1,17 @@
+
 import { useEffect, useState } from "react";
 
 import StatCard from "../Components/StatCard";
 import HoldingsTable from "../Components/HoldingsTable";
 import PortfolioAllocationChart from "../Components/PortfolioAllocationChart";
+import PerformanceChart from "../Components/PerformanceChart";
 
 import { supabase } from "../supabaseClient";
 
 function Portfolio() {
   const [portfolio, setPortfolio] = useState(null);
   const [holdings, setHoldings] = useState([]);
+  const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,83 +24,85 @@ function Portfolio() {
       setLoading(true);
       setError("");
 
+      // Get currently logged-in user automatically
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) {
-        throw userError;
-      }
+      if (userError) throw userError;
 
       if (!user) {
         throw new Error("User is not logged in.");
       }
 
+      // Get portfolio belonging to logged-in user
       const { data: portfolioData, error: portfolioError } =
         await supabase
           .from("portfolios")
           .select("*")
           .eq("user_id", user.id)
-          .order("portfolio_id", { ascending: false })
+          .order("created_at", { ascending: false })
           .limit(1);
 
-      if (portfolioError) {
-        throw portfolioError;
-      }
+      if (portfolioError) throw portfolioError;
 
       if (!portfolioData || portfolioData.length === 0) {
-        throw new Error(
-          "No portfolio found for the currently logged-in user."
-        );
+        throw new Error("No portfolio found for this user.");
       }
 
       const selectedPortfolio = portfolioData[0];
 
       setPortfolio(selectedPortfolio);
 
+      // Get current holdings
       const { data: holdingsData, error: holdingsError } =
         await supabase
           .from("portfolio_holdings")
           .select(`
-            holding_id,
-            quantity,
-            average_price,
+            id,
+            asset_id,
+            weight,
+            is_current,
             assets (
-              asset_id,
               symbol,
               name,
-              asset_type,
-              liquidity
+              asset_class
             )
           `)
-          .eq("portfolio_id", selectedPortfolio.portfolio_id);
+          .eq("portfolio_id", selectedPortfolio.id)
+          .eq("is_current", true);
 
-      if (holdingsError) {
-        throw holdingsError;
-      }
+      if (holdingsError) throw holdingsError;
 
-      const formattedHoldings = (holdingsData || []).map(
-        (holding) => {
-          const asset = holding.assets;
+      const capital = Number(selectedPortfolio.capital || 0);
 
-          const currentValue =
-            Number(holding.quantity) *
-            Number(holding.average_price);
+      const formattedHoldings = (holdingsData || []).map((holding) => {
+        const weight = Number(holding.weight || 0);
 
-          return {
-            id: holding.holding_id,
-            asset: asset?.name,
-            symbol: asset?.symbol,
-            type: asset?.asset_type,
-            quantity: Number(holding.quantity),
-            averagePrice: Number(holding.average_price),
-            currentValue,
-          };
-        }
-      );
+        return {
+          id: holding.id,
+          assetClass:
+            holding.assets?.asset_class || "Unknown",
+          allocationPct: Number((weight * 100).toFixed(2)),
+          currentValue: Math.round(weight * capital),
+        };
+      });
 
       setHoldings(formattedHoldings);
+
+      // Get performance snapshots
+      const { data: snapshotData, error: snapshotError } =
+        await supabase
+          .from("portfolio_snapshots")
+          .select("value, created_at")
+          .eq("portfolio_id", selectedPortfolio.id)
+          .order("created_at", { ascending: true });
+
+      if (snapshotError) throw snapshotError;
+
+      setSnapshots(snapshotData || []);
+
     } catch (err) {
       console.error("Portfolio fetch error:", err);
 
@@ -109,41 +114,22 @@ function Portfolio() {
     }
   };
 
-  // Calculate total portfolio value
+  const capital = Number(portfolio?.capital || 0);
+
   const portfolioValue = holdings.reduce(
     (total, holding) =>
-      total + holding.currentValue,
+      total + Number(holding.currentValue || 0),
     0
   );
 
-  // Calculate allocation percentage for each holding
-  const holdingsWithAllocation = holdings.map((holding) => ({
-    ...holding,
-    allocation:
-      portfolioValue > 0
-        ? `${(
-            (holding.currentValue / portfolioValue) *
-            100
-          ).toFixed(2)}%`
-        : "--",
+  const allocationData = holdings.map((holding) => ({
+    name: holding.assetClass,
+    value: holding.currentValue,
   }));
 
-  // Calculate allocation by asset type
-  const allocationMap = {};
-
-  holdings.forEach((holding) => {
-    const type = holding.type || "Other";
-
-    allocationMap[type] =
-      (allocationMap[type] || 0) +
-      holding.currentValue;
-  });
-
-  const allocationData = Object.entries(
-    allocationMap
-  ).map(([name, value]) => ({
-    name,
-    value,
+  const performanceData = snapshots.map((snapshot) => ({
+    date: snapshot.created_at,
+    value: Number(snapshot.value),
   }));
 
   if (loading) {
@@ -177,38 +163,27 @@ function Portfolio() {
   return (
     <main className="pt-20 p-8 bg-slate-100 min-h-screen">
 
-      {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-800">
           Portfolio
         </h1>
 
         <p className="text-slate-500 mt-2">
-          View and monitor your current asset holdings.
+          View and monitor your current asset allocation.
         </p>
       </div>
 
-      {/* Statistics */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
         <StatCard
           title="Total Capital"
-          value={
-            portfolio
-              ? `₹${Number(
-                  portfolio.total_capital
-                ).toLocaleString("en-IN")}`
-              : "--"
-          }
+          value={`₹${capital.toLocaleString("en-IN")}`}
         />
 
         <StatCard
           title="Portfolio Value"
-          value={
-            portfolioValue > 0
-              ? `₹${portfolioValue.toLocaleString("en-IN")}`
-              : "--"
-          }
+          value={`₹${portfolioValue.toLocaleString("en-IN")}`}
         />
 
         <StatCard
@@ -225,9 +200,7 @@ function Portfolio() {
 
       {/* Holdings */}
       <div className="mt-8">
-        <HoldingsTable
-          holdings={holdingsWithAllocation}
-        />
+        <HoldingsTable holdings={holdings} />
       </div>
 
       {/* Allocation Chart */}
@@ -237,8 +210,16 @@ function Portfolio() {
         />
       </div>
 
+      {/* Performance Chart */}
+      <div className="mt-8">
+        <PerformanceChart
+          data={performanceData}
+        />
+      </div>
+
     </main>
   );
 }
 
 export default Portfolio;
+

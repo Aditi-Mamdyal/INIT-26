@@ -8,30 +8,27 @@ import {
 } from "recharts";
 
 function PortfolioAllocationChart({ data = [] }) {
-  const COLORS = [
-    "#2563EB", // Blue
-    "#16A34A", // Green
-    "#F59E0B", // Amber
-    "#9333EA", // Purple
-    "#DC2626", // Red
-    "#0891B2", // Cyan
-  ];
+
+  const COLORS = {
+    equity: "#2563EB",
+    bonds: "#16A34A",
+    gold: "#F59E0B",
+    cash: "#9333EA",
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200">
 
-      {/* Header */}
       <div className="p-6 border-b border-slate-200">
         <h2 className="text-lg font-semibold text-slate-800">
           Portfolio Allocation
         </h2>
 
         <p className="text-sm text-slate-500 mt-1">
-          Distribution of capital across asset types
+          Distribution of capital across asset classes
         </p>
       </div>
 
-      {/* Chart */}
       <div className="p-6">
 
         {data.length === 0 ? (
@@ -51,35 +48,31 @@ function PortfolioAllocationChart({ data = [] }) {
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
+                  cy="45%"
+                  innerRadius={60}
                   outerRadius={110}
-                  innerRadius={55}
                   paddingAngle={3}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(1)}%`
-                  }
-                  labelLine={false}
                 >
-
-                  {data.map((entry, index) => (
+                  {data.map((entry) => (
                     <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
+                      key={entry.name}
+                      fill={
+                        COLORS[entry.name] ||
+                        "#64748B"
+                      }
                     />
                   ))}
-
                 </Pie>
 
                 <Tooltip
                   formatter={(value) =>
-                    `₹${Number(value).toLocaleString("en-IN")}`
+                    `₹${Number(
+                      value
+                    ).toLocaleString("en-IN")}`
                   }
                 />
 
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                />
+                <Legend />
 
               </PieChart>
             </ResponsiveContainer>

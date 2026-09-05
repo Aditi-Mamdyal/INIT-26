@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
-function Navbar({ setIsOpen }) {
+function Navbar({ setIsOpen, companyName, username }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -60,14 +60,16 @@ function Navbar({ setIsOpen }) {
       {/* Right Section */}
       <div className="flex items-center gap-3">
 
-        {/* User Avatar */}
-        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-          S
+        {/* Company Avatar */}
+        <div className="w-9 h-9 rounded-full bg-blue-100 text-lg text-blue-600 flex items-center justify-center font-bold">
+          {companyName
+            ? companyName.charAt(0).toUpperCase()
+            : "C"}
         </div>
 
-        {/* User Name */}
-        <span className="hidden sm:block font-medium text-slate-700">
-          Srushti
+        {/* Company Name */}
+        <span className="hidden sm:block font-bold text-blue-700">
+          {companyName || "Company"}
         </span>
 
         {/* Logout */}

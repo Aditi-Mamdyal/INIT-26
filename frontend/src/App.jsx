@@ -23,11 +23,11 @@ function App() {
 
       <Routes>
 
-        {/* Authentication pages */}
+        Authentication Pages
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Protected pages */}
+        {/* Protected Application Pages */}
         <Route
           element={
             <ProtectedRoute>
@@ -35,7 +35,6 @@ function App() {
             </ProtectedRoute>
           }
         >
-
           <Route
             path="/"
             element={<Navigate to="/dashboard" />}
@@ -65,7 +64,6 @@ function App() {
             path="/optimisation"
             element={<Optimisation />}
           />
-
         </Route>
 
       </Routes>
