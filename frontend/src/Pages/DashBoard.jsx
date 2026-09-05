@@ -2,6 +2,13 @@ import StatCard from "../Components/StatCard";
 import RiskCard from "../Components/RiskCard";
 import AllocationChart from "../Components/AllocationChart";
 import PerformanceChart from "../Components/PerformanceChart";
+import {
+  WalletCards,
+  BriefcaseBusiness,
+  TrendingUp,
+  ShieldAlert,
+} from "lucide-react";
+
 
 function Dashboard() {
   return (
