@@ -20,44 +20,50 @@ def optimize_endpoint():
     body = request.json
     portfolio_id = body["portfolio_id"]
 
+    # Read form-provided constraints (sent from Optimisation.jsx), converting % → fraction
+    max_equity = float(body.get("maxEquity", 100)) / 100
+    max_single_asset = float(body.get("maxAsset", 100)) / 100
+    min_liquidity = float(body.get("minLiquidity", 0)) / 100
+    capital = body.get("capital")
+
     assets = supabase.table("assets").select("*").execute().data
     rows = supabase.table("market_prices").select("*").order("recorded_at").execute().data
-    rules = supabase.table("risk_rules").select("*").eq("portfolio_id", portfolio_id).execute().data
 
     asset_map = {a["id"]: a["asset_class"] for a in assets}
     df = pd.DataFrame(rows)
     df["asset_class"] = df["asset_id"].map(asset_map)
     pivot = df.pivot_table(index="recorded_at", columns="asset_class", values="price")
 
-    rule_map = {r["metric"]: r["threshold_value"] for r in rules}
-    max_weights = {
-        "Equity": rule_map.get("max_equity", 1.0),
-        "Gold": rule_map.get("max_gold", 1.0),
-        "Bonds": 1.0,
-        "Cash": 1.0
-    }
+    max_weights = {"Equity": max_equity}   # only Equity has a form-specific cap; others default to max_single_asset
+    min_weights = {"Cash": min_liquidity}
 
-    weights, ret, vol, sharpe = optimize(pivot, max_weights)
+    try:
+        weights, ret, vol, sharpe = optimize(
+            pivot, max_weights,
+            max_single_asset=max_single_asset,
+            min_weights=min_weights
+        )
+    except Exception as e:
+        print("OPTIMIZATION ERROR:", repr(e))
+        return jsonify({"error": f"Optimization failed: {str(e)}"}), 500
 
-    # Log the run
+    # Update capital if the user provided a new one
+    if capital is not None:
+        supabase.table("portfolios").update({"capital": float(capital)}).eq("id", portfolio_id).execute()
+
     supabase.table("optimization_runs").insert({
-        "portfolio_id": portfolio_id,
-        "weights": weights,
-        "expected_return": ret,
-        "volatility": vol,
-        "sharpe": sharpe,
+        "portfolio_id": portfolio_id, "weights": weights,
+        "expected_return": ret, "volatility": vol, "sharpe": sharpe,
         "triggered_by": "manual"
     }).execute()
 
-    # Supersede old holdings, insert new ones
     supabase.table("portfolio_holdings").update({"is_current": False}).eq("portfolio_id", portfolio_id).execute()
     class_to_asset_id = {a["asset_class"]: a["id"] for a in assets}
     for cls, w in weights.items():
+        if cls not in class_to_asset_id:
+            continue
         supabase.table("portfolio_holdings").insert({
-            "portfolio_id": portfolio_id,
-            "asset_id": class_to_asset_id[cls],
-            "weight": w,
-            "is_current": True
+            "portfolio_id": portfolio_id, "asset_id": class_to_asset_id[cls], "weight": w, "is_current": True
         }).execute()
 
     return jsonify({"weights": weights, "expectedReturn": ret, "portfolioRisk": vol, "sharpeRatio": sharpe})
