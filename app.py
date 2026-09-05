@@ -234,6 +234,3 @@ def tick_now():
 if __name__ == "__main__":
     start_scheduler()
     app.run(debug=True, port=5000)
-
-from price_feed import start_scheduler
-start_scheduler()
