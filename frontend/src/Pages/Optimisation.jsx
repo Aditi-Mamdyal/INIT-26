@@ -1,40 +1,37 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import axios from "axios";
-
 import OptimizationForm from "../Components/OptimizationForm";
 import OptimizationResult from "../Components/OptimizationResult";
-
 import { supabase } from "../supabaseClient";
 
 const API_URL = "http://localhost:5000";
 
 function Optimisation() {
-  const [portfolioId, setPortfolioId] = useState(null);
   const [result, setResult] = useState(null);
-
   const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Get the logged-in user's portfolio
-  useEffect(() => {
-    const loadPortfolio = async () => {
-      try {
-        setPageLoading(true);
-        setError("");
+  const handleOptimization = async (formData) => {
+    setLoading(true);
+    setError("");
+    setResult(null);
 
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
+    try {
+      // Get logged-in user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-        if (userError) throw userError;
+      if (userError) throw userError;
 
-        if (!user) {
-          throw new Error("User is not logged in.");
-        }
+      if (!user) {
+        throw new Error("User is not logged in.");
+      }
 
-        const { data, error: portfolioError } = await supabase
+      // Get user's portfolio
+      const { data: portfolio, error: portfolioError } =
+        await supabase
           .from("portfolios")
           .select("id")
           .eq("user_id", user.id)
@@ -42,56 +39,29 @@ function Optimisation() {
           .limit(1)
           .single();
 
-        if (portfolioError) throw portfolioError;
+      if (portfolioError) throw portfolioError;
 
-        if (!data?.id) {
-          throw new Error("No portfolio found for this user.");
-        }
+      // Send form values to Flask
+      const response = await axios.post(`${API_URL}/optimize`, {
+        portfolio_id: portfolio.id,
 
-        setPortfolioId(data.id);
+        capital: Number(formData.capital),
 
-        console.log("Portfolio ID:", data.id);
-      } catch (err) {
-        console.error("Portfolio loading failed:", err);
+        riskTolerance: formData.riskTolerance,
 
-        setError(
-          err.message || "Unable to load your portfolio."
-        );
-      } finally {
-        setPageLoading(false);
-      }
-    };
+        maxEquity: Number(formData.maxEquity),
 
-    loadPortfolio();
-  }, []);
+        maxAsset: Number(formData.maxAsset),
 
-  const handleOptimization = async (formData) => {
-    event.preventDefault();
-
-    if (!portfolioId) {
-      setError("Portfolio is not available.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setResult(null);
-
-    try {
-      const response = await axios.post(
-        `${API_URL}/optimize`,
-        {
-          portfolio_id: portfolioId,
-        }
-      );
-
-      console.log("Optimization response:", response.data);
+        minLiquidity: Number(formData.minLiquidity),
+      });
 
       setResult({
         equity: response.data.weights?.Equity,
         bonds: response.data.weights?.Bonds,
         gold: response.data.weights?.Gold,
         cash: response.data.weights?.Cash,
+
         expectedReturn: response.data.expectedReturn,
         portfolioRisk: response.data.portfolioRisk,
         sharpeRatio: response.data.sharpeRatio,
@@ -102,24 +72,12 @@ function Optimisation() {
       setError(
         err.response?.data?.error ||
         err.message ||
-        "Optimization failed."
+        "Optimization failed"
       );
     } finally {
       setLoading(false);
     }
   };
-
-  if (pageLoading) {
-    return (
-      <main className="pt-20 p-8 bg-slate-100 min-h-screen">
-        <div className="bg-white rounded-xl p-6 border border-slate-200">
-          <p className="text-slate-500">
-            Loading portfolio...
-          </p>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="pt-20 p-8 bg-slate-100 min-h-screen">
@@ -130,8 +88,8 @@ function Optimisation() {
         </h1>
 
         <p className="text-slate-500 mt-2">
-          Optimize capital allocation while maintaining
-          risk and liquidity controls.
+          Optimize capital allocation while maintaining risk and
+          liquidity controls.
         </p>
       </div>
 

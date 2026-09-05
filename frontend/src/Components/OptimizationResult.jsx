@@ -4,19 +4,22 @@ import {
   BarChart3,
   PieChart,
   CheckCircle2,
+  Check,
 } from "lucide-react";
 
-function OptimizationResult({ result }) {
-
+function OptimizationResult({
+  result,
+  onApply,
+  applying = false,
+  applied = false,
+  applyError = "",
+}) {
   const formatPercentage = (value) => {
     if (value === undefined || value === null || value === "") {
       return "--";
     }
 
-    const number = Number(value);
-
-    // Backend currently returns weights as decimals
-    return `${(number * 100).toFixed(2)}%`;
+    return `${(Number(value) * 100).toFixed(2)}%`;
   };
 
   const formatMetric = (value, suffix = "") => {
@@ -68,16 +71,12 @@ function OptimizationResult({ result }) {
 
       {/* Header */}
       <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-
         <div className="flex items-start justify-between">
 
           <div className="flex items-start gap-4">
 
             <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-              <PieChart
-                size={22}
-                className="text-emerald-600"
-              />
+              <PieChart size={22} className="text-emerald-600" />
             </div>
 
             <div>
@@ -100,7 +99,6 @@ function OptimizationResult({ result }) {
           )}
 
         </div>
-
       </div>
 
       {!result ? (
@@ -109,10 +107,7 @@ function OptimizationResult({ result }) {
         <div className="min-h-[520px] flex flex-col items-center justify-center px-8 text-center">
 
           <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-5">
-            <BarChart3
-              size={34}
-              className="text-slate-300"
-            />
+            <BarChart3 size={34} className="text-slate-300" />
           </div>
 
           <h3 className="text-base font-semibold text-slate-700">
@@ -120,7 +115,8 @@ function OptimizationResult({ result }) {
           </h3>
 
           <p className="text-sm text-slate-400 mt-2 max-w-xs leading-6">
-            Set your portfolio constraints on the left and run the optimizer to see the recommended allocation.
+            Set your portfolio constraints on the left and run the optimizer
+            to see the recommended allocation.
           </p>
 
         </div>
@@ -196,7 +192,6 @@ function OptimizationResult({ result }) {
 
                   </div>
 
-                  {/* Progress bar */}
                   <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
 
                     <div
@@ -220,7 +215,7 @@ function OptimizationResult({ result }) {
           {/* Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
 
-            {/* Return */}
+            {/* Expected Return */}
             <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
 
               <div className="flex items-center gap-2">
@@ -244,7 +239,7 @@ function OptimizationResult({ result }) {
 
             </div>
 
-            {/* Risk */}
+            {/* Portfolio Risk */}
             <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
 
               <div className="flex items-center gap-2">
@@ -291,6 +286,50 @@ function OptimizationResult({ result }) {
               </p>
 
             </div>
+
+          </div>
+
+          {/* Apply section */}
+          <div className="mt-6 pt-5 border-t border-slate-200">
+
+            {applyError && (
+              <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+                {applyError}
+              </div>
+            )}
+
+            {applied && (
+              <div className="mb-3 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+                <CheckCircle2 size={17} />
+                Optimization applied successfully.
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={onApply}
+              disabled={applying || applied}
+              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl px-4 py-3.5 transition-all shadow-sm hover:shadow-md"
+            >
+
+              {applying ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Applying...
+                </>
+              ) : applied ? (
+                <>
+                  <Check size={18} />
+                  Optimization Applied
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={18} />
+                  Apply Optimization
+                </>
+              )}
+
+            </button>
 
           </div>
 
