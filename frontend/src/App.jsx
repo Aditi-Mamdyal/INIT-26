@@ -9,9 +9,10 @@ import Layout from "./Components/Layout";
 import ProtectedRoute from "./Components/ProtectedRoute";
 
 import Dashboard from "./Pages/DashBoard";
-import Transactions from "./Pages/Transactions";
-import Analytics from "./Pages/Analytics";
-import Settings from "./Pages/Settings";
+import Scenarios from "./Pages/Scenarios";
+import Portfolio from "./Pages/Portfolio";
+import RiskControl from "./Pages/RiskControl";
+import Optimisation from "./Pages/Optimisation";
 
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
@@ -46,18 +47,23 @@ function App() {
           />
 
           <Route
-            path="/transactions"
-            element={<Transactions />}
+            path="/scenarios"
+            element={<Scenarios />}
           />
 
           <Route
-            path="/analytics"
-            element={<Analytics />}
+            path="/portfolio"
+            element={<Portfolio />}
           />
 
           <Route
-            path="/settings"
-            element={<Settings />}
+            path="/risk-control"
+            element={<RiskControl />}
+          />
+
+          <Route
+            path="/optimisation"
+            element={<Optimisation />}
           />
 
         </Route>
