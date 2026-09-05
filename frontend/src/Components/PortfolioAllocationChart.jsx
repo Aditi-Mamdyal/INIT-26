@@ -2,58 +2,92 @@ import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
   Tooltip,
-  Legend
+  Legend,
+  ResponsiveContainer,
 } from "recharts";
 
 function PortfolioAllocationChart({ data = [] }) {
+  const COLORS = [
+    "#2563EB", // Blue
+    "#16A34A", // Green
+    "#F59E0B", // Amber
+    "#9333EA", // Purple
+    "#DC2626", // Red
+    "#0891B2", // Cyan
+  ];
+
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200">
 
-      <h2 className="text-lg font-semibold text-slate-800">
-        Portfolio Allocation
-      </h2>
+      {/* Header */}
+      <div className="p-6 border-b border-slate-200">
+        <h2 className="text-lg font-semibold text-slate-800">
+          Portfolio Allocation
+        </h2>
 
-      <p className="text-sm text-slate-500 mt-1">
-        Distribution of capital across asset types
-      </p>
+        <p className="text-sm text-slate-500 mt-1">
+          Distribution of capital across asset types
+        </p>
+      </div>
 
-      {data.length === 0 ? (
-        <div className="h-72 flex items-center justify-center">
-          <p className="text-slate-400">
-            Allocation data will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="h-72 mt-4">
+      {/* Chart */}
+      <div className="p-6">
 
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+        {data.length === 0 ? (
+          <div className="h-80 flex items-center justify-center">
+            <p className="text-slate-400">
+              No allocation data available.
+            </p>
+          </div>
+        ) : (
+          <div className="h-80">
 
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={90}
-                label
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} />
-                ))}
-              </Pie>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
 
-              <Tooltip />
-              <Legend />
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={110}
+                  innerRadius={55}
+                  paddingAngle={3}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(1)}%`
+                  }
+                  labelLine={false}
+                >
 
-            </PieChart>
-          </ResponsiveContainer>
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
 
-        </div>
-      )}
+                </Pie>
 
+                <Tooltip
+                  formatter={(value) =>
+                    `₹${Number(value).toLocaleString("en-IN")}`
+                  }
+                />
+
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                />
+
+              </PieChart>
+            </ResponsiveContainer>
+
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
