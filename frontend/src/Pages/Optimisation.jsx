@@ -4,7 +4,7 @@ import OptimizationForm from "../Components/OptimizationForm";
 import OptimizationResult from "../Components/OptimizationResult";
 
 const API_URL = "http://localhost:5000";
-const PORTFOLIO_ID = "your-real-portfolio-uuid"; // temporary — replace with real logged-in user's portfolio ID later
+const PORTFOLIO_ID = "your-real-portfolio-uuid"; // replace with real logged-in user's ID later
 
 function Optimisation() {
   const [result, setResult] = useState(null);
@@ -16,9 +16,16 @@ function Optimisation() {
     setLoading(true);
     setError("");
 
+    const formData = new FormData(event.target);
+
     try {
       const response = await axios.post(`${API_URL}/optimize`, {
-        portfolio_id: PORTFOLIO_ID
+        portfolio_id: PORTFOLIO_ID,
+        capital: formData.get("capital"),
+        riskTolerance: formData.get("riskTolerance"),
+        maxEquity: formData.get("maxEquity"),
+        maxAsset: formData.get("maxAsset"),
+        minLiquidity: formData.get("minLiquidity"),
       });
 
       setResult({

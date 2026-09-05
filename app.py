@@ -67,7 +67,7 @@ def optimize_endpoint():
         }).execute()
 
     return jsonify({"weights": weights, "expectedReturn": ret, "portfolioRisk": vol, "sharpeRatio": sharpe})
-
+    
 @app.route("/portfolio/<portfolio_id>", methods=["GET"])
 def get_portfolio(portfolio_id):
     portfolio = supabase.table("portfolios").select("*").eq("id", portfolio_id).single().execute().data
@@ -137,6 +137,9 @@ def risk_status(portfolio_id):
                 current = max(weights.values()) if weights else 0
         elif r["metric"] == "max_volatility":
             current = risk_values["volatility"]
+
+        # Convert fraction → whole-number percentage for display, matching threshold_value's notation
+        current_display = round(current * 100, 2) if current is not None else None
 
         breached = any(b["metric"] == r["metric"] for b in breaches)
         rule_cards.append({
