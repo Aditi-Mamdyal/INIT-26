@@ -29,7 +29,7 @@ def check_breaches(risk_values, weights, risk_rules):
     Returns a list of breach dicts.
     """
     breaches = []
-    rule_map = {r["metric"]: r["threshold_value"] for r in risk_rules}
+    rule_map = {r["metric"]: r["threshold_value"] / 100 for r in risk_rules}
 
     if "max_volatility" in rule_map and risk_values["volatility"] > rule_map["max_volatility"]:
         breaches.append({"metric": "max_volatility", "value": risk_values["volatility"],
