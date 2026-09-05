@@ -6,14 +6,14 @@ BASE_PRICES = {"Equity": 100, "Bonds": 100, "Gold": 100, "Cash": 100}
 
 def run():
     assets = supabase.table("assets").select("*").execute().data
-    start_time = datetime.utcnow() - timedelta(days=30)
+    start_time = datetime.utcnow() - timedelta(days=120)
 
     prices = {a["asset_class"]: BASE_PRICES.get(a["asset_class"], 100) for a in assets}
 
-    for day in range(30):
+    for day in range(120):
         timestamp = (start_time + timedelta(days=day)).isoformat()
         for a in assets:
-            prices[a["asset_class"]] *= (1 + random.uniform(-0.015, 0.015))
+            prices[a["asset_class"]] *= (1 + random.uniform(-0.008, 0.008))
             supabase.table("market_prices").insert({
                 "asset_id": a["id"],
                 "price": round(prices[a["asset_class"]], 2),
