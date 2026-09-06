@@ -7,62 +7,69 @@ import {
   Percent,
   Droplets,
   SlidersHorizontal,
+  TrendingUp,
+  Landmark,
+  Coins,
+  Banknote,
+  Building2,
+  Activity,
 } from "lucide-react";
 
 function OptimizationForm({ onSubmit, loading = false }) {
   const [formData, setFormData] = useState({
     capital: "",
     riskTolerance: "balanced",
-    maxEquity: 60,
-    maxAsset: 25,
-    minLiquidity: 15,
+
+    maxEquity: 50,
+    maxGold: 30,
+    maxAsset: 40,
+    minLiquidity: 10,
+    maxVolatility: 25,
+
+    selectedAssets: [
+      "Equity",
+      "Bonds",
+      "Mutual Funds",
+      "Gold",
+      "Cash",
+      "Real Estate",
+    ],
   });
 
   const [errors, setErrors] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
-  };
-
-  const handleRiskChange = (value) => {
-    setFormData((prev) => ({
-      ...prev,
-      riskTolerance: value,
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    const newErrors = {};
-
-    if (!formData.capital || Number(formData.capital) <= 0) {
-      newErrors.capital = "Enter a valid portfolio capital.";
-    }
-
-    if (Number(formData.maxAsset) > Number(formData.maxEquity)) {
-      newErrors.maxAsset =
-        "Maximum single asset cannot exceed maximum equity.";
-    }
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    // Send the actual form values to Optimisation.jsx
-    onSubmit(formData);
-  };
+  const assetOptions = [
+    {
+      value: "Equity",
+      label: "Equity / Stocks",
+      icon: TrendingUp,
+    },
+    {
+      value: "Bonds",
+      label: "Bonds / Fixed Income",
+      icon: Landmark,
+    },
+    {
+      value: "Mutual Funds",
+      label: "Mutual Funds",
+      icon: Coins,
+    },
+    {
+      value: "Gold",
+      label: "Gold",
+      icon: Coins,
+    },
+    {
+      value: "Cash",
+      label: "Cash / Money Market",
+      icon: Banknote,
+    },
+    {
+      value: "Real Estate",
+      label: "Real Estate / REITs",
+      icon: Building2,
+    },
+  ];
 
   const riskOptions = [
     {
@@ -85,6 +92,129 @@ function OptimizationForm({ onSubmit, loading = false }) {
     },
   ];
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: "",
+    }));
+  };
+
+  const handleRiskChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      riskTolerance: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      riskTolerance: "",
+    }));
+  };
+
+  const handleAssetChange = (asset) => {
+    setFormData((prev) => {
+      const alreadySelected = prev.selectedAssets.includes(asset);
+
+      if (alreadySelected) {
+        return {
+          ...prev,
+          selectedAssets: prev.selectedAssets.filter(
+            (item) => item !== asset
+          ),
+        };
+      }
+
+      return {
+        ...prev,
+        selectedAssets: [...prev.selectedAssets, asset],
+      };
+    });
+
+    setErrors((prev) => ({
+      ...prev,
+      selectedAssets: "",
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const newErrors = {};
+
+    const capital = Number(formData.capital);
+    const maxEquity = Number(formData.maxEquity);
+    const maxGold = Number(formData.maxGold);
+    const maxAsset = Number(formData.maxAsset);
+    const minLiquidity = Number(formData.minLiquidity);
+    const maxVolatility = Number(formData.maxVolatility);
+
+    // Capital validation
+    if (!formData.capital || capital <= 0) {
+      newErrors.capital = "Enter a valid portfolio capital.";
+    }
+
+    // Risk constraint validation
+    if (maxEquity < 0 || maxEquity > 100) {
+      newErrors.maxEquity =
+        "Maximum equity must be between 0% and 100%.";
+    }
+
+    if (maxGold < 0 || maxGold > 100) {
+      newErrors.maxGold =
+        "Maximum gold must be between 0% and 100%.";
+    }
+
+    if (maxAsset <= 0 || maxAsset > 100) {
+      newErrors.maxAsset =
+        "Maximum single asset must be between 1% and 100%.";
+    }
+
+    if (minLiquidity < 0 || minLiquidity > 100) {
+      newErrors.minLiquidity =
+        "Minimum liquidity must be between 0% and 100%.";
+    }
+
+    if (maxVolatility <= 0 || maxVolatility > 100) {
+      newErrors.maxVolatility =
+        "Maximum volatility must be between 1% and 100%.";
+    }
+
+    // At least 2 assets
+    if (formData.selectedAssets.length < 2) {
+      newErrors.selectedAssets =
+        "Select at least two investment assets.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // Send only user-provided optimization controls.
+    //
+    // Historical market data, asset data and portfolio ID
+    // will be obtained by the backend.
+    onSubmit({
+      capital,
+      riskTolerance: formData.riskTolerance,
+
+      maxEquity,
+      maxGold,
+      maxAsset,
+      minLiquidity,
+      maxVolatility,
+
+      selectedAssets: formData.selectedAssets,
+    });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
@@ -105,7 +235,7 @@ function OptimizationForm({ onSubmit, loading = false }) {
             </h2>
 
             <p className="text-sm text-slate-500 mt-1">
-              Set your capital, risk tolerance and portfolio constraints.
+              Select assets and define your portfolio risk constraints.
             </p>
           </div>
 
@@ -156,7 +286,83 @@ function OptimizationForm({ onSubmit, loading = false }) {
           )}
         </div>
 
-        {/* Risk tolerance */}
+        {/* Asset Selection */}
+        <div>
+
+          <label className="text-sm font-semibold text-slate-700 mb-3 block">
+            Select Investment Assets
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+
+            {assetOptions.map((asset) => {
+              const Icon = asset.icon;
+
+              const selected =
+                formData.selectedAssets.includes(asset.value);
+
+              return (
+                <button
+                  key={asset.value}
+                  type="button"
+                  onClick={() =>
+                    handleAssetChange(asset.value)
+                  }
+                  className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    selected
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      selected
+                        ? "bg-blue-100"
+                        : "bg-slate-100"
+                    }`}
+                  >
+                    <Icon
+                      size={18}
+                      className={
+                        selected
+                          ? "text-blue-600"
+                          : "text-slate-500"
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <p
+                      className={`text-xs font-semibold ${
+                        selected
+                          ? "text-blue-700"
+                          : "text-slate-700"
+                      }`}
+                    >
+                      {asset.label}
+                    </p>
+
+                    <p className="text-[10px] text-slate-400">
+                      {selected ? "Selected" : "Not selected"}
+                    </p>
+                  </div>
+
+                </button>
+              );
+            })}
+
+          </div>
+
+          {errors.selectedAssets && (
+            <p className="text-xs text-red-500 mt-2">
+              {errors.selectedAssets}
+            </p>
+          )}
+
+        </div>
+
+        {/* Risk Tolerance */}
         <div>
 
           <label className="text-sm font-semibold text-slate-700 mb-3 block">
@@ -245,6 +451,49 @@ function OptimizationForm({ onSubmit, loading = false }) {
             className="w-full accent-blue-600 cursor-pointer"
           />
 
+          {errors.maxEquity && (
+            <p className="text-xs text-red-500 mt-2">
+              {errors.maxEquity}
+            </p>
+          )}
+
+        </div>
+
+        {/* Maximum Gold */}
+        <div>
+
+          <div className="flex justify-between mb-2">
+
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <Percent
+                size={16}
+                className="text-yellow-600"
+              />
+              Maximum Gold
+            </label>
+
+            <span className="text-sm font-bold text-yellow-600">
+              {formData.maxGold}%
+            </span>
+
+          </div>
+
+          <input
+            type="range"
+            name="maxGold"
+            min="0"
+            max="100"
+            value={formData.maxGold}
+            onChange={handleChange}
+            className="w-full accent-yellow-500 cursor-pointer"
+          />
+
+          {errors.maxGold && (
+            <p className="text-xs text-red-500 mt-2">
+              {errors.maxGold}
+            </p>
+          )}
+
         </div>
 
         {/* Maximum Single Asset */}
@@ -265,7 +514,7 @@ function OptimizationForm({ onSubmit, loading = false }) {
           <input
             type="range"
             name="maxAsset"
-            min="0"
+            min="1"
             max="100"
             value={formData.maxAsset}
             onChange={handleChange}
@@ -309,9 +558,52 @@ function OptimizationForm({ onSubmit, loading = false }) {
             className="w-full accent-cyan-600 cursor-pointer"
           />
 
+          {errors.minLiquidity && (
+            <p className="text-xs text-red-500 mt-2">
+              {errors.minLiquidity}
+            </p>
+          )}
+
         </div>
 
-        {/* REAL SUBMIT BUTTON */}
+        {/* Maximum Volatility */}
+        <div>
+
+          <div className="flex justify-between mb-2">
+
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <Activity
+                size={16}
+                className="text-red-500"
+              />
+              Maximum Portfolio Volatility
+            </label>
+
+            <span className="text-sm font-bold text-red-500">
+              {formData.maxVolatility}%
+            </span>
+
+          </div>
+
+          <input
+            type="range"
+            name="maxVolatility"
+            min="1"
+            max="100"
+            value={formData.maxVolatility}
+            onChange={handleChange}
+            className="w-full accent-red-500 cursor-pointer"
+          />
+
+          {errors.maxVolatility && (
+            <p className="text-xs text-red-500 mt-2">
+              {errors.maxVolatility}
+            </p>
+          )}
+
+        </div>
+
+        {/* Submit */}
         <button
           type="submit"
           disabled={loading}

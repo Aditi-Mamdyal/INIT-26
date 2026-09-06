@@ -1,105 +1,212 @@
 import { useState } from "react";
 import axios from "axios";
+import { supabase } from "../supabaseClient";
 import OptimizationForm from "../Components/OptimizationForm";
 import OptimizationResult from "../Components/OptimizationResult";
-import { supabase } from "../supabaseClient";
 
 const API_URL = "http://localhost:5000";
-const PORTFOLIO_ID = "your-real-portfolio-uuid"; // replace with real logged-in user's ID later
 
 function Optimisation() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleOptimization = async (formData) => {
+  const handleOptimization = async (data) => {
     setLoading(true);
     setError("");
+    setSuccess("");
     setResult(null);
 
     try {
-      // Get logged-in user
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) throw userError;
-
-      if (!user) {
-        throw new Error("User is not logged in.");
+      if (userError || !user) {
+        throw new Error("Please login first.");
       }
 
-      // Get user's portfolio
       const { data: portfolio, error: portfolioError } =
         await supabase
           .from("portfolios")
-          .select("id")
+          .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
 
-      if (portfolioError) throw portfolioError;
+      if (portfolioError || !portfolio) {
+        console.error("Portfolio error:", portfolioError);
 
-      // Send form values to Flask
-      const response = await axios.post(`${API_URL}/optimize`, {
+        throw new Error(
+          "Portfolio not found for the logged-in user."
+        );
+      }
+
+      console.log("Portfolio found:", portfolio);
+
+      const payload = {
         portfolio_id: portfolio.id,
+        capital: Number(data.capital),
+        riskTolerance: data.riskTolerance,
+        maxEquity: Number(data.maxEquity),
+        maxGold: Number(data.maxGold),
+        maxAsset: Number(data.maxAsset),
+        minLiquidity: Number(data.minLiquidity),
+        maxVolatility: Number(data.maxVolatility),
+        selectedAssets: data.selectedAssets,
+      };
 
-        capital: Number(formData.capital),
+      console.log("Sending optimization request:");
+      console.log(payload);
 
-        riskTolerance: formData.riskTolerance,
+      const response = await axios.post(
+        `${API_URL}/optimize`,
+        payload
+      );
 
-        maxEquity: Number(formData.maxEquity),
-
-        maxAsset: Number(formData.maxAsset),
-
-        minLiquidity: Number(formData.minLiquidity),
-      });
+      console.log("Backend optimization response:");
+      console.log(response.data);
 
       setResult({
-        equity: response.data.weights?.Equity,
-        bonds: response.data.weights?.Bonds,
-        gold: response.data.weights?.Gold,
-        cash: response.data.weights?.Cash,
+        weights: response.data.weights || {},
+        selectedAssets: data.selectedAssets,
 
-        expectedReturn: response.data.expectedReturn,
-        portfolioRisk: response.data.portfolioRisk,
-        sharpeRatio: response.data.sharpeRatio,
+        capital: Number(
+          response.data.capital || data.capital
+        ),
+
+        expectedReturn: Number(
+          response.data.expectedReturn || 0
+        ),
+
+        portfolioRisk: Number(
+          response.data.portfolioRisk || 0
+        ),
+
+        sharpeRatio: Number(
+          response.data.sharpeRatio || 0
+        ),
+
+        runId: response.data.runId,
       });
+
     } catch (err) {
       console.error("Optimization failed:", err);
 
       setError(
         err.response?.data?.error ||
         err.message ||
-        "Optimization failed"
+        "Optimization failed. Please try again."
       );
+
     } finally {
       setLoading(false);
     }
   };
 
+  // APPLY OPTIMIZATION
+  const handleApplyOptimization = async () => {
+    if (!result?.runId) {
+      setError(
+        "No optimization result is available to apply."
+      );
+      return;
+    }
+
+    setApplying(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      console.log(
+        "Applying optimization run:",
+        result.runId
+      );
+
+      const response = await axios.post(
+        `${API_URL}/apply-optimization`,
+        {
+          run_id: result.runId,
+        }
+      );
+
+      console.log(
+        "Apply optimization response:",
+        response.data
+      );
+
+      setSuccess(
+        "Optimization applied successfully. Your portfolio has been updated."
+      );
+
+    } catch (err) {
+      console.error(
+        "Apply optimization failed:",
+        err
+      );
+
+      setError(
+        err.response?.data?.error ||
+        err.message ||
+        "Unable to apply optimization."
+      );
+
+    } finally {
+      setApplying(false);
+    }
+  };
+
   return (
     <main className="pt-20 p-8 bg-slate-100 min-h-screen">
+
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Portfolio Optimization</h1>
+
+        <h1 className="text-3xl font-bold text-slate-800">
+          Portfolio Optimization
+        </h1>
+
         <p className="text-slate-500 mt-2">
-          Optimize capital allocation while maintaining risk and
-          liquidity controls.
+          Optimize capital allocation using historical market
+          data while maintaining risk and liquidity controls.
         </p>
+
       </div>
 
+      {/* Error */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-4 mb-6">
           {error}
         </div>
       )}
 
+      {/* Success */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-4 mb-6">
+          {success}
+        </div>
+      )}
+
+      {/* Form + Result */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OptimizationForm onSubmit={handleOptimization} loading={loading} />
-        <OptimizationResult result={result} />
+
+        <OptimizationForm
+          onSubmit={handleOptimization}
+          loading={loading}
+        />
+
+        <OptimizationResult
+          result={result}
+          onApply={handleApplyOptimization}
+          applying={applying}
+        />
+
       </div>
+
     </main>
   );
 }

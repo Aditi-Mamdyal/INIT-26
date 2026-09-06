@@ -1,68 +1,60 @@
 import {
   TrendingUp,
-  ShieldAlert,
+  ShieldCheck,
   BarChart3,
-  PieChart,
-  CheckCircle2,
-  Check,
+  CheckCircle,
+  Zap,
+  WalletCards,
 } from "lucide-react";
 
 function OptimizationResult({
   result,
   onApply,
   applying = false,
-  applied = false,
-  applyError = "",
 }) {
-  const formatPercentage = (value) => {
-    if (value === undefined || value === null || value === "") {
-      return "--";
-    }
+  if (!result) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 flex items-center justify-center min-h-[400px]">
 
-    return `${(Number(value) * 100).toFixed(2)}%`;
-  };
+        <div className="text-center">
 
-  const formatMetric = (value, suffix = "") => {
-    if (value === undefined || value === null || value === "") {
-      return "--";
-    }
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+            <BarChart3
+              size={26}
+              className="text-slate-400"
+            />
+          </div>
 
-    return `${Number(value).toFixed(2)}${suffix}`;
-  };
+          <h2 className="text-lg font-semibold text-slate-700">
+            Optimization Results
+          </h2>
 
-  const allocations = [
-    {
-      name: "Equity",
-      value: result?.equity,
-      label: "Equity",
-      bar: "bg-blue-500",
-      icon: "E",
-    },
-    {
-      name: "Bonds",
-      value: result?.bonds,
-      label: "Bonds",
-      bar: "bg-emerald-500",
-      icon: "B",
-    },
-    {
-      name: "Gold",
-      value: result?.gold,
-      label: "Gold",
-      bar: "bg-amber-500",
-      icon: "G",
-    },
-    {
-      name: "Cash",
-      value: result?.cash,
-      label: "Cash",
-      bar: "bg-purple-500",
-      icon: "C",
-    },
-  ];
+          <p className="text-sm text-slate-400 mt-2">
+            Configure your portfolio and click
+            "Optimize Portfolio" to see the recommended allocation.
+          </p>
 
-  const totalAllocation = allocations.reduce(
-    (sum, item) => sum + Number(item.value || 0),
+        </div>
+
+      </div>
+    );
+  }
+
+  const weights = result.weights || {};
+
+  /*
+    Use selectedAssets when available so that assets with
+    0% allocation are also displayed.
+  */
+  const selectedAssets =
+    result.selectedAssets &&
+    result.selectedAssets.length > 0
+      ? result.selectedAssets
+      : Object.keys(weights);
+
+  const totalWeight = selectedAssets.reduce(
+    (total, asset) =>
+      total + Number(weights[asset] || 0),
     0
   );
 
@@ -71,131 +63,84 @@ function OptimizationResult({
 
       {/* Header */}
       <div className="px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-        <div className="flex items-start justify-between">
 
-          <div className="flex items-start gap-4">
+        <div className="flex items-center gap-3">
 
-            <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-              <PieChart size={22} className="text-emerald-600" />
-            </div>
+          <div className="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center">
+            <CheckCircle
+              size={23}
+              className="text-green-600"
+            />
+          </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-slate-800">
-                Optimization Result
-              </h2>
+          <div>
 
-              <p className="text-sm text-slate-500 mt-1">
-                Recommended portfolio allocation
-              </p>
-            </div>
+            <h2 className="text-lg font-semibold text-slate-800">
+              Recommended Allocation
+            </h2>
+
+            <p className="text-sm text-slate-500">
+              Based on your selected constraints.
+            </p>
 
           </div>
 
-          {result && (
-            <div className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
-              <CheckCircle2 size={14} />
-              Optimized
-            </div>
-          )}
-
         </div>
+
       </div>
 
-      {!result ? (
+      <div className="p-6 space-y-6">
 
-        /* Empty state */
-        <div className="min-h-[520px] flex flex-col items-center justify-center px-8 text-center">
+        {/* Asset allocation */}
+        <div>
 
-          <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-5">
-            <BarChart3 size={34} className="text-slate-300" />
-          </div>
+          <div className="flex items-center justify-between mb-3">
 
-          <h3 className="text-base font-semibold text-slate-700">
-            No optimization yet
-          </h3>
+            <h3 className="text-sm font-semibold text-slate-700">
+              Asset Allocation
+            </h3>
 
-          <p className="text-sm text-slate-400 mt-2 max-w-xs leading-6">
-            Set your portfolio constraints on the left and run the optimizer
-            to see the recommended allocation.
-          </p>
-
-        </div>
-
-      ) : (
-
-        <div className="p-6">
-
-          {/* Allocation header */}
-          <div className="flex items-center justify-between mb-4">
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-700">
-                Recommended Allocation
-              </h3>
-
-              <p className="text-xs text-slate-400 mt-1">
-                Optimized distribution across asset classes
-              </p>
-            </div>
-
-            <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                Total
-              </p>
-
-              <p className="text-sm font-bold text-slate-700">
-                {(totalAllocation * 100).toFixed(2)}%
-              </p>
-            </div>
+            <span className="text-xs font-semibold text-slate-500">
+              Total: {(totalWeight * 100).toFixed(2)}%
+            </span>
 
           </div>
 
-          {/* Allocation cards */}
           <div className="space-y-3">
 
-            {allocations.map((item) => {
+            {selectedAssets.map((asset) => {
 
-              const percentage =
-                Number(item.value || 0) * 100;
+              const weight = Number(
+                weights[asset] || 0
+              );
+
+              const percentage = weight * 100;
+
+              const capital =
+                Number(result.capital || 0) * weight;
 
               return (
                 <div
-                  key={item.name}
-                  className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
+                  key={asset}
+                  className="border border-slate-200 rounded-xl p-4"
                 >
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between items-center mb-2">
 
-                    <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-slate-700">
+                      {asset}
+                    </span>
 
-                      <div
-                        className={`w-9 h-9 rounded-lg ${item.bar} flex items-center justify-center text-white text-xs font-bold`}
-                      >
-                        {item.icon}
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-semibold text-slate-700">
-                          {item.label}
-                        </p>
-
-                        <p className="text-xs text-slate-400">
-                          Portfolio allocation
-                        </p>
-                      </div>
-
-                    </div>
-
-                    <p className="text-base font-bold text-slate-800">
-                      {formatPercentage(item.value)}
-                    </p>
+                    <span className="text-sm font-bold text-blue-600">
+                      {percentage.toFixed(2)}%
+                    </span>
 
                   </div>
 
-                  <div className="mt-3 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
 
                     <div
-                      className={`h-full ${item.bar} rounded-full transition-all duration-700`}
+                      className="h-full bg-blue-500 rounded-full transition-all"
                       style={{
                         width: `${Math.min(
                           Math.max(percentage, 0),
@@ -206,135 +151,159 @@ function OptimizationResult({
 
                   </div>
 
+                  <div className="flex justify-between mt-2">
+
+                    <span className="text-[11px] text-slate-400">
+                      Recommended allocation
+                    </span>
+
+                    {result.capital && (
+                      <span className="text-[11px] font-medium text-slate-500">
+                        ₹{capital.toLocaleString("en-IN", {
+                          maximumFractionDigits: 0,
+                        })}
+                      </span>
+                    )}
+
+                  </div>
+
                 </div>
               );
             })}
 
           </div>
 
-          {/* Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+        </div>
 
-            {/* Expected Return */}
-            <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+        {/* Metrics */}
+        <div className="grid grid-cols-3 gap-3">
 
-              <div className="flex items-center gap-2">
+          <div className="rounded-xl bg-blue-50 p-4">
 
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <TrendingUp
-                    size={17}
-                    className="text-emerald-600"
-                  />
-                </div>
+            <TrendingUp
+              size={18}
+              className="text-blue-600 mb-2"
+            />
 
-                <p className="text-xs font-medium text-emerald-700">
-                  Expected Return
-                </p>
+            <p className="text-xs text-slate-500">
+              Expected Return
+            </p>
 
-              </div>
-
-              <p className="text-xl font-bold text-slate-800 mt-3">
-                {formatMetric(result.expectedReturn, "%")}
-              </p>
-
-            </div>
-
-            {/* Portfolio Risk */}
-            <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
-
-              <div className="flex items-center gap-2">
-
-                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <ShieldAlert
-                    size={17}
-                    className="text-amber-600"
-                  />
-                </div>
-
-                <p className="text-xs font-medium text-amber-700">
-                  Portfolio Risk
-                </p>
-
-              </div>
-
-              <p className="text-xl font-bold text-slate-800 mt-3">
-                {formatMetric(result.portfolioRisk, "%")}
-              </p>
-
-            </div>
-
-            {/* Sharpe */}
-            <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-
-              <div className="flex items-center gap-2">
-
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <BarChart3
-                    size={17}
-                    className="text-blue-600"
-                  />
-                </div>
-
-                <p className="text-xs font-medium text-blue-700">
-                  Sharpe Ratio
-                </p>
-
-              </div>
-
-              <p className="text-xl font-bold text-slate-800 mt-3">
-                {formatMetric(result.sharpeRatio)}
-              </p>
-
-            </div>
+            <p className="text-lg font-bold text-slate-800">
+              {Number(
+                result.expectedReturn * 100
+              ).toFixed(2)}
+              %
+            </p>
 
           </div>
 
-          {/* Apply section */}
-          <div className="mt-6 pt-5 border-t border-slate-200">
+          <div className="rounded-xl bg-amber-50 p-4">
 
-            {applyError && (
-              <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-                {applyError}
-              </div>
-            )}
+            <ShieldCheck
+              size={18}
+              className="text-amber-600 mb-2"
+            />
 
-            {applied && (
-              <div className="mb-3 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
-                <CheckCircle2 size={17} />
-                Optimization applied successfully.
-              </div>
-            )}
+            <p className="text-xs text-slate-500">
+              Portfolio Risk
+            </p>
 
-            <button
-              type="button"
-              onClick={onApply}
-              disabled={applying || applied}
-              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl px-4 py-3.5 transition-all shadow-sm hover:shadow-md"
-            >
+            <p className="text-lg font-bold text-slate-800">
+              {Number(
+                result.portfolioRisk * 100
+              ).toFixed(2)}
+              %
+            </p>
 
-              {applying ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Applying...
-                </>
-              ) : applied ? (
-                <>
-                  <Check size={18} />
-                  Optimization Applied
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 size={18} />
-                  Apply Optimization
-                </>
-              )}
+          </div>
 
-            </button>
+          <div className="rounded-xl bg-green-50 p-4">
+
+            <BarChart3
+              size={18}
+              className="text-green-600 mb-2"
+            />
+
+            <p className="text-xs text-slate-500">
+              Sharpe Ratio
+            </p>
+
+            <p className="text-lg font-bold text-slate-800">
+              {Number(
+                result.sharpeRatio
+              ).toFixed(2)}
+            </p>
 
           </div>
 
         </div>
-      )}
+
+        {/* Optimization summary */}
+        <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+
+          <div className="flex items-center gap-2 mb-3">
+
+            <WalletCards
+              size={17}
+              className="text-blue-600"
+            />
+
+            <h3 className="text-sm font-semibold text-slate-700">
+              Optimization Summary
+            </h3>
+
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-xs">
+
+            <div>
+              <p className="text-slate-400">
+                Assets considered
+              </p>
+
+              <p className="font-semibold text-slate-700 mt-1">
+                {selectedAssets.length}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-slate-400">
+                Total allocation
+              </p>
+
+              <p className="font-semibold text-slate-700 mt-1">
+                {(totalWeight * 100).toFixed(2)}%
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Apply button */}
+        <button
+          type="button"
+          onClick={onApply}
+          disabled={applying}
+          className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white font-semibold rounded-xl px-4 py-3.5 transition"
+        >
+
+          {applying ? (
+            <>
+              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              Applying...
+            </>
+          ) : (
+            <>
+              <Zap size={18} />
+              Apply Optimization
+            </>
+          )}
+
+        </button>
+
+      </div>
 
     </div>
   );
