@@ -1,77 +1,108 @@
-function ScenarioForm({ onSubmit, loading = false }) {
+import { ChevronDown, Play } from "lucide-react";
+
+function ScenarioForm({ onSubmit, loading }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+    <form
+      onSubmit={onSubmit}
+      className="space-y-6"
+    >
 
-      <h2 className="text-lg font-semibold text-slate-800">
-        Stress Test Scenario
-      </h2>
+      {/* SCENARIO */}
 
-      <p className="text-sm text-slate-500 mt-1">
-        Simulate market conditions and evaluate portfolio impact.
-      </p>
+      <div>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-5">
+        <label className="block text-sm font-semibold text-slate-700 mb-2">
+          Select Scenario
+        </label>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Scenario
-          </label>
+        <div className="relative">
 
           <select
             name="scenario"
+            required
             defaultValue=""
-            className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full appearance-none bg-white border border-slate-300 rounded-xl px-4 py-3 pr-12 text-slate-700 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition cursor-pointer"
           >
-            <option value="" disabled>
-              Select scenario
+
+            <option
+              value=""
+              disabled
+            >
+              Choose a scenario
             </option>
 
-            <option value="normal">
-              Normal Market
-            </option>
-
-            <option value="market_crash">
+            <option value="Market Crash">
               Market Crash
             </option>
 
-            <option value="interest_rate_shock">
-              Interest Rate Shock
+            <option value="Interest Rate Increase">
+              Interest Rate Increase
             </option>
 
-            <option value="high_inflation">
-              High Inflation
+            <option value="Inflation Shock">
+              Inflation Shock
             </option>
 
-            <option value="custom">
-              Custom Scenario
+            <option value="Gold Price Drop">
+              Gold Price Drop
             </option>
+
+            <option value="Equity Market Decline">
+              Equity Market Decline
+            </option>
+
           </select>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Market Shock %
-          </label>
-
-          <input
-            type="number"
-            name="shock"
-            placeholder="Enter market shock percentage"
-            className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+          <ChevronDown
+            size={20}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
           />
+
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-lg px-4 py-3 transition"
-        >
-          {loading ? "Running Scenario..." : "Run Scenario"}
-        </button>
+      </div>
 
-      </form>
+      {/* MARKET SHOCK */}
 
-    </div>
+      <div>
+
+        <label className="block text-sm font-semibold text-slate-700 mb-2">
+          Market Shock (%)
+        </label>
+
+        <input
+          type="number"
+          name="shock"
+          placeholder="Example: -20"
+          required
+          step="0.01"
+          className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-700 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+        />
+
+        <p className="text-xs text-slate-400 mt-2">
+          Use a negative value for a decline.
+          Example: -20 means the market falls by 20%.
+        </p>
+
+      </div>
+
+      {/* RUN */}
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-semibold rounded-xl px-5 py-3 transition shadow-sm"
+      >
+
+        <Play size={18} />
+
+        {loading
+          ? "Running Scenario..."
+          : "Run Scenario"}
+
+      </button>
+
+    </form>
   );
 }
 
