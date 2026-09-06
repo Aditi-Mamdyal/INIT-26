@@ -44,6 +44,11 @@ def tick():
     timestamp = datetime.utcnow().isoformat()
 
     assets = supabase.table("assets").select("*").execute().data
+    asset_id_map = {a["id"]: a for a in assets}
+
+    # Track the price we just wrote for each asset this tick, so the
+    # snapshot step below doesn't need a second round-trip per asset.
+    new_prices_by_asset_id = {}
 
     for asset in assets:
         last_row = supabase.table("market_prices") \
@@ -52,6 +57,7 @@ def tick():
         last_price = last_row[0]["price"] if last_row else 100
 
         new_price, source = get_next_price(asset, last_price)
+        new_prices_by_asset_id[asset["id"]] = new_price
 
         supabase.table("market_prices").insert({
             "asset_id": asset["id"],
@@ -62,15 +68,33 @@ def tick():
 
         print(f"  {asset['asset_class']}: {new_price} ({source})")
 
-    # Update portfolio value snapshots for every portfolio
+    # ------------------------------------------------------------------
+    # Update portfolio value snapshots — now based on actual price
+    # movement since each holding was allocated, not just static weights.
+    # ------------------------------------------------------------------
     portfolios = supabase.table("portfolios").select("*").execute().data
-    asset_price_map = {a["id"]: a for a in assets}
 
     for p in portfolios:
         holdings = supabase.table("portfolio_holdings") \
             .select("*").eq("portfolio_id", p["id"]).eq("is_current", True).execute().data
 
-        total_value = sum(h["weight"] for h in holdings) * p["capital"]
+        total_value = 0.0
+
+        for h in holdings:
+            weight = h["weight"]
+            reference_price = h.get("price_at_allocation")
+            asset_id = h["asset_id"]
+            current_price = new_prices_by_asset_id.get(asset_id)
+
+            if not reference_price or not current_price:
+                # No reference price recorded yet (older holding, pre-fix) —
+                # fall back to the old static behavior for this holding only.
+                total_value += weight * p["capital"]
+                continue
+
+            price_ratio = current_price / reference_price
+            total_value += weight * p["capital"] * price_ratio
+            print(f"Portfolio {p['id']} snapshot value: {total_value}")
 
         supabase.table("portfolio_snapshots").insert({
             "portfolio_id": p["id"],

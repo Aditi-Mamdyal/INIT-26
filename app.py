@@ -8,6 +8,22 @@ from risk_engine import compute_returns, evaluate, check_breaches
 
 import pandas as pd
 
+def get_latest_prices_by_class():
+    """Returns {asset_class: latest_price} for every asset."""
+    assets = supabase.table("assets").select("*").execute().data
+    prices = {}
+    for asset in assets:
+        row = (
+            supabase.table("market_prices")
+            .select("price")
+            .eq("asset_id", asset["id"])
+            .order("recorded_at", desc=True)
+            .limit(1)
+            .execute()
+            .data
+        )
+        prices[asset["asset_class"]] = row[0]["price"] if row else None
+    return prices
 
 # ============================================================
 # FLASK APP
@@ -902,6 +918,7 @@ def apply_optimization():
         # Insert new holdings
         # ----------------------------------------------------
 
+        latest_prices = get_latest_prices_by_class()
         for asset_class, weight in weights.items():
 
             if asset_class not in class_to_asset_id:
@@ -914,7 +931,8 @@ def apply_optimization():
                     "portfolio_id": portfolio_id,
                     "asset_id": class_to_asset_id[asset_class],
                     "weight": float(weight),
-                    "is_current": True
+                    "is_current": True,
+                    "price_at_allocation": latest_prices.get(asset_class)
                 })
                 .execute()
             )
@@ -2074,6 +2092,7 @@ def apply_scenario(run_id):
         # Insert allocation
         # ----------------------------------------------------
 
+        latest_prices = get_latest_prices_by_class()
         for asset_class, weight in allocation.items():
 
             if asset_class not in class_to_asset_id:
@@ -2096,7 +2115,10 @@ def apply_scenario(run_id):
                         float(weight),
 
                     "is_current":
-                        True
+                        True,
+
+                    "price_at_allocation":
+                        latest_prices.get(asset_class)
 
                 })
                 .execute()
