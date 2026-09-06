@@ -3,23 +3,17 @@ import { useEffect, useState } from "react";
 import {
   WalletCards,
   BriefcaseBusiness,
-  TrendingUp,
   ShieldAlert,
-  Droplets,
-  Activity,
-  AlertTriangle,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 
 import { supabase } from "../supabaseClient";
 
 import StatCard from "../Components/StatCard";
 import RiskCard from "../Components/RiskCard";
-import AllocationChart from "../Components/AllocationChart";
-import PerformanceChart from "../Components/PerformanceChart";
 
 function Dashboard() {
-
   const API_URL = "http://localhost:5000";
 
   const [loading, setLoading] = useState(true);
@@ -27,19 +21,19 @@ function Dashboard() {
 
   const [portfolio, setPortfolio] = useState(null);
   const [holdings, setHoldings] = useState([]);
-  const [snapshots, setSnapshots] = useState([]);
 
   const [riskData, setRiskData] = useState(null);
   const [alerts, setAlerts] = useState([]);
+
+  // Portfolio snapshots
+  const [snapshots, setSnapshots] = useState([]);
 
   // ========================================================
   // FETCH DASHBOARD DATA
   // ========================================================
 
   const fetchDashboardData = async () => {
-
     try {
-
       setLoading(true);
       setError("");
 
@@ -57,9 +51,7 @@ function Dashboard() {
       }
 
       if (!user) {
-        throw new Error(
-          "User is not logged in."
-        );
+        throw new Error("User is not logged in.");
       }
 
       // ----------------------------------------------------
@@ -84,85 +76,34 @@ function Dashboard() {
       }
 
       if (!portfolioData) {
-        throw new Error(
-          "No portfolio found for this user."
-        );
+        throw new Error("No portfolio found for this user.");
       }
 
       setPortfolio(portfolioData);
 
-      const portfolioId =
-        portfolioData.id;
+      const portfolioId = portfolioData.id;
 
       // ----------------------------------------------------
       // 3. Get current portfolio from Flask
       // ----------------------------------------------------
 
-      const portfolioResponse =
-        await fetch(
-          `${API_URL}/portfolio/${portfolioId}`
-        );
+      const portfolioResponse = await fetch(
+        `${API_URL}/portfolio/${portfolioId}`
+      );
 
-      const portfolioResult =
-        await portfolioResponse.json();
+      const portfolioResult = await portfolioResponse.json();
 
       if (!portfolioResponse.ok) {
         throw new Error(
           portfolioResult.error ||
-          "Unable to fetch portfolio."
+            "Unable to fetch portfolio."
         );
       }
 
-      setHoldings(
-        portfolioResult.holdings || []
-      );
+      setHoldings(portfolioResult.holdings || []);
 
       // ----------------------------------------------------
-      // 4. Get risk status from Flask
-      // ----------------------------------------------------
-
-      const riskResponse =
-        await fetch(
-          `${API_URL}/risk-status/${portfolioId}`
-        );
-
-      const riskResult =
-        await riskResponse.json();
-
-      if (!riskResponse.ok) {
-        throw new Error(
-          riskResult.error ||
-          "Unable to fetch risk status."
-        );
-      }
-
-      setRiskData(riskResult);
-
-      // ----------------------------------------------------
-      // 5. Get alerts from Flask
-      // ----------------------------------------------------
-
-      const alertsResponse =
-        await fetch(
-          `${API_URL}/alerts/${portfolioId}`
-        );
-
-      const alertsResult =
-        await alertsResponse.json();
-
-      if (!alertsResponse.ok) {
-        throw new Error(
-          alertsResult.error ||
-          "Unable to fetch risk alerts."
-        );
-      }
-
-      setAlerts(
-        alertsResult.alerts || []
-      );
-
-      // ----------------------------------------------------
-      // 6. Get portfolio snapshots
+      // 4. Get portfolio snapshots
       // ----------------------------------------------------
 
       const {
@@ -170,44 +111,64 @@ function Dashboard() {
         error: snapshotError,
       } = await supabase
         .from("portfolio_snapshots")
-        .select(
-          "value, created_at"
-        )
-        .eq(
-          "portfolio_id",
-          portfolioId
-        )
-        .order(
-          "created_at",
-          {
-            ascending: true,
-          }
-        );
+        .select("value, created_at")
+        .eq("portfolio_id", portfolioId)
+        .order("created_at", {
+          ascending: true,
+        });
 
       if (snapshotError) {
         throw snapshotError;
       }
 
-      setSnapshots(
-        snapshotData || []
+      setSnapshots(snapshotData || []);
+
+      // ----------------------------------------------------
+      // 5. Get risk status from Flask
+      // ----------------------------------------------------
+
+      const riskResponse = await fetch(
+        `${API_URL}/risk-status/${portfolioId}`
       );
 
+      const riskResult = await riskResponse.json();
+
+      if (!riskResponse.ok) {
+        throw new Error(
+          riskResult.error ||
+            "Unable to fetch risk status."
+        );
+      }
+
+      setRiskData(riskResult);
+
+      // ----------------------------------------------------
+      // 6. Get alerts from Flask
+      // ----------------------------------------------------
+
+      const alertsResponse = await fetch(
+        `${API_URL}/alerts/${portfolioId}`
+      );
+
+      const alertsResult = await alertsResponse.json();
+
+      if (!alertsResponse.ok) {
+        throw new Error(
+          alertsResult.error ||
+            "Unable to fetch risk alerts."
+        );
+      }
+
+      setAlerts(alertsResult.alerts || []);
     } catch (err) {
-
-      console.error(
-        "Dashboard error:",
-        err
-      );
+      console.error("Dashboard error:", err);
 
       setError(
         err.message ||
-        "Unable to load dashboard data."
+          "Unable to load dashboard data."
       );
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
@@ -216,69 +177,54 @@ function Dashboard() {
   // ========================================================
 
   useEffect(() => {
-
     fetchDashboardData();
-
   }, []);
 
   // ========================================================
   // CALCULATIONS
   // ========================================================
 
-  const totalCapital =
-    Number(
-      portfolio?.capital || 0
+  const totalCapital = Number(
+    portfolio?.capital || 0
+  );
+
+  // --------------------------------------------------------
+  // Portfolio Value
+  // --------------------------------------------------------
+
+  let portfolioValue = totalCapital;
+
+  if (snapshots.length > 0) {
+    const latestSnapshotValue = Number(
+      snapshots[snapshots.length - 1]?.value || 0
     );
 
-  const portfolioValue =
-    snapshots.length > 0
-      ? Number(
-          snapshots[
-            snapshots.length - 1
-          ].value || totalCapital
-        )
-      : totalCapital;
-
-  const totalReturn =
-    totalCapital > 0
-      ? (
-          (
-            portfolioValue -
-            totalCapital
-          ) /
-          totalCapital
-        ) * 100
-      : 0;
+    if (latestSnapshotValue > 0) {
+      portfolioValue = latestSnapshotValue;
+    }
+  }
 
   // --------------------------------------------------------
   // Risk values from Flask
   // --------------------------------------------------------
 
-  const riskValues =
-    riskData?.riskValues || {};
+  const riskValues = riskData?.riskValues || {};
 
   const portfolioRisk =
-    Number(
-      riskValues.volatility || 0
-    ) * 100;
+    Number(riskValues.volatility || 0) * 100;
 
   const var95 =
-    Number(
-      riskValues.var_95 || 0
-    ) * 100;
+    Number(riskValues.var_95 || 0) * 100;
 
   // --------------------------------------------------------
   // Find risk status
   // --------------------------------------------------------
 
-  const riskRules =
-    riskData?.rules || [];
+  const riskRules = riskData?.rules || [];
 
-  const breachedRules =
-    riskRules.filter(
-      (rule) =>
-        rule.status === "Breached"
-    );
+  const breachedRules = riskRules.filter(
+    (rule) => rule.status === "Breached"
+  );
 
   const riskStatus =
     breachedRules.length > 0
@@ -289,96 +235,38 @@ function Dashboard() {
   // Liquidity
   // --------------------------------------------------------
 
-  const cashRule =
-    riskRules.find(
-      (rule) =>
-        rule.ruleName ===
-        "min_liquidity"
-    );
+  const cashRule = riskRules.find(
+    (rule) =>
+      rule.ruleName === "min_liquidity"
+  );
 
-  const cashHolding =
-    holdings.find(
-      (holding) =>
-        holding.asset_class
-          ?.toLowerCase() === "cash"
-    );
+  const cashHolding = holdings.find(
+    (holding) =>
+      holding.asset_class?.toLowerCase() === "cash"
+  );
 
-  const liquidityRatio =
-    cashHolding
-      ? Number(
-          cashHolding.weight || 0
-        ) * 100
-      : 0;
+  const liquidityRatio = cashHolding
+    ? Number(cashHolding.weight || 0) * 100
+    : 0;
 
-  const liquidityThreshold =
-    cashRule
-      ? Number(
-          cashRule.threshold || 0
-        )
-      : Number(
-          portfolio?.cash_buffer_pct || 10
-        );
+  const liquidityThreshold = cashRule
+    ? Number(cashRule.threshold || 0)
+    : Number(
+        portfolio?.cash_buffer_pct || 10
+      );
 
   const liquidityHealthy =
-    liquidityRatio >=
-    liquidityThreshold;
-
-  // --------------------------------------------------------
-  // Allocation chart
-  // --------------------------------------------------------
-
-  const allocationData =
-    holdings.map(
-      (holding) => ({
-        name:
-          holding.asset_class ||
-          "Unknown",
-
-        value:
-          Number(
-            holding.weight || 0
-          ) * totalCapital,
-      })
-    );
-
-  // --------------------------------------------------------
-  // Performance chart
-  // --------------------------------------------------------
-
-  const performanceData =
-    snapshots.map(
-      (snapshot) => ({
-        date:
-          new Date(
-            snapshot.created_at
-          ).toLocaleDateString(
-            "en-IN",
-            {
-              day: "2-digit",
-              month: "short",
-            }
-          ),
-
-        value:
-          Number(
-            snapshot.value || 0
-          ),
-      })
-    );
+    liquidityRatio >= liquidityThreshold;
 
   // ========================================================
   // LOADING
   // ========================================================
 
   if (loading) {
-
     return (
       <main className="pt-20 p-8 bg-slate-100 min-h-screen">
-
         <div className="flex items-center justify-center min-h-[70vh]">
-
           <div className="text-center">
-
             <RefreshCw
               size={32}
               className="animate-spin mx-auto text-blue-600 mb-4"
@@ -387,11 +275,8 @@ function Dashboard() {
             <p className="text-slate-500">
               Loading portfolio dashboard...
             </p>
-
           </div>
-
         </div>
-
       </main>
     );
   }
@@ -401,19 +286,14 @@ function Dashboard() {
   // ========================================================
 
   if (error) {
-
     return (
       <main className="pt-20 p-8 bg-slate-100 min-h-screen">
-
         <div className="max-w-xl mx-auto mt-20 bg-white rounded-2xl border border-red-200 shadow-sm p-8 text-center">
-
           <div className="w-14 h-14 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-4">
-
             <AlertTriangle
               className="text-red-600"
               size={28}
             />
-
           </div>
 
           <h2 className="text-xl font-bold text-slate-800">
@@ -425,20 +305,13 @@ function Dashboard() {
           </p>
 
           <button
-            onClick={
-              fetchDashboardData
-            }
+            onClick={fetchDashboardData}
             className="mt-6 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
           >
-
             <RefreshCw size={17} />
-
             Try Again
-
           </button>
-
         </div>
-
       </main>
     );
   }
@@ -450,22 +323,14 @@ function Dashboard() {
   return (
     <main className="pt-20 p-8 bg-slate-100 min-h-screen">
 
-      {/* ====================================================
-          HEADER
-      ==================================================== */}
+      {/* HEADER */}
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-
         <div>
-
           <div className="flex items-center gap-2 mb-2">
-
             <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-
               LIVE PORTFOLIO
-
             </span>
-
           </div>
 
           <h1 className="text-3xl font-bold text-slate-800">
@@ -475,150 +340,84 @@ function Dashboard() {
           <p className="text-slate-500 mt-2">
             Monitor your capital, portfolio performance and risk.
           </p>
-
         </div>
 
         <button
-          onClick={
-            fetchDashboardData
-          }
+          onClick={fetchDashboardData}
           className="self-start md:self-auto flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition shadow-sm"
         >
-
           <RefreshCw size={17} />
-
           Refresh
-
         </button>
-
       </div>
 
-      {/* ====================================================
-          PORTFOLIO
-      ==================================================== */}
+      {/* CURRENT PORTFOLIO */}
 
       <div className="bg-gradient-to-r from-blue-600 to-indigo-500 rounded-2xl p-6 mb-6 text-white shadow-lg">
-
         <div className="flex items-center gap-3">
-
           <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-
             <BriefcaseBusiness size={25} />
-
           </div>
 
           <div>
-
             <p className="text-blue-100 text-sm">
               Current Portfolio
             </p>
 
             <h2 className="text-xl font-bold">
-              {portfolio?.name ||
-                "My Portfolio"}
+              {portfolio?.name || "My Portfolio"}
             </h2>
-
           </div>
-
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-
           <span className="px-3 py-1.5 bg-white/15 rounded-lg text-sm">
-
             Risk Profile:{" "}
-
             <strong className="capitalize">
-
-              {portfolio?.risk_profile ||
-                "Balanced"}
-
+              {portfolio?.risk_profile || "Balanced"}
             </strong>
-
           </span>
 
           <span className="px-3 py-1.5 bg-white/15 rounded-lg text-sm">
-
-            Current Holdings:{" "}
-
-            {holdings.length}
-
+            Current Holdings: {holdings.length}
           </span>
 
           <span className="px-3 py-1.5 bg-white/15 rounded-lg text-sm">
-
             Risk Status:{" "}
-
-            <strong>
-              {riskStatus}
-            </strong>
-
+            <strong>{riskStatus}</strong>
           </span>
-
         </div>
-
       </div>
 
-      {/* ====================================================
-          MAIN STATISTICS
-      ==================================================== */}
+      {/* MAIN STATISTICS */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <StatCard
           title="Total Capital"
-          value={`₹${totalCapital.toLocaleString(
-            "en-IN"
-          )}`}
+          value={`₹${totalCapital.toLocaleString("en-IN")}`}
         />
 
         <StatCard
           title="Portfolio Value"
-          value={`₹${portfolioValue.toLocaleString(
-            "en-IN"
-          )}`}
-        />
-
-        <StatCard
-          title="Total Return"
-          value={`${
-            totalReturn >= 0
-              ? "+"
-              : ""
-          }${totalReturn.toFixed(2)}%`}
-          positive={
-            totalReturn >= 0
-          }
+          value={`₹${portfolioValue.toLocaleString("en-IN")}`}
         />
 
         <StatCard
           title="Portfolio Risk"
-          value={`${portfolioRisk.toFixed(
-            2
-          )}%`}
+          value={`${portfolioRisk.toFixed(2)}%`}
         />
-
       </div>
 
-      {/* ====================================================
-          RISK & LIQUIDITY
-      ==================================================== */}
+      {/* RISK & LIQUIDITY */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-
         <RiskCard
           title="Liquidity Ratio"
-          value={`${liquidityRatio.toFixed(
-            2
-          )}%`}
+          value={`${liquidityRatio.toFixed(2)}%`}
           status={
             liquidityHealthy
-              ? `Healthy — minimum ${liquidityThreshold.toFixed(
-                  0
-                )}%`
-              : `Below minimum — ${liquidityThreshold.toFixed(
-                  0
-                )}% required`
+              ? `Healthy — minimum ${liquidityThreshold.toFixed(0)}%`
+              : `Below minimum — ${liquidityThreshold.toFixed(0)}% required`
           }
         />
 
@@ -631,17 +430,13 @@ function Dashboard() {
               : "All risk rules within limits"
           }
         />
-
       </div>
 
-      {/* ====================================================
-          EXTRA RISK INFORMATION
-      ==================================================== */}
+      {/* EXTRA RISK INFORMATION */}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-
           <p className="text-sm text-slate-500">
             Portfolio Volatility
           </p>
@@ -653,11 +448,9 @@ function Dashboard() {
           <p className="text-xs text-slate-400 mt-1">
             Annualized risk
           </p>
-
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-
           <p className="text-sm text-slate-500">
             VaR (95%)
           </p>
@@ -669,11 +462,9 @@ function Dashboard() {
           <p className="text-xs text-slate-400 mt-1">
             Daily downside estimate
           </p>
-
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-
           <p className="text-sm text-slate-500">
             Active Alerts
           </p>
@@ -682,8 +473,7 @@ function Dashboard() {
             {
               alerts.filter(
                 (alert) =>
-                  alert.status ===
-                  "active"
+                  alert.status === "active"
               ).length
             }
           </p>
@@ -691,104 +481,24 @@ function Dashboard() {
           <p className="text-xs text-slate-400 mt-1">
             Current risk notifications
           </p>
-
         </div>
 
       </div>
 
-      {/* ====================================================
-          CHARTS
-      ==================================================== */}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition">
-
-          <div className="flex items-center gap-3 mb-5">
-
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-
-              <Activity
-                className="text-blue-600"
-                size={20}
-              />
-
-            </div>
-
-            <div>
-
-              <h2 className="font-semibold text-slate-800">
-                Asset Allocation
-              </h2>
-
-              <p className="text-sm text-slate-400">
-                Current portfolio distribution
-              </p>
-
-            </div>
-
-          </div>
-
-          <AllocationChart
-            data={allocationData}
-          />
-
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition">
-
-          <div className="flex items-center gap-3 mb-5">
-
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-
-              <TrendingUp
-                className="text-emerald-600"
-                size={20}
-              />
-
-            </div>
-
-            <div>
-
-              <h2 className="font-semibold text-slate-800">
-                Portfolio Performance
-              </h2>
-
-              <p className="text-sm text-slate-400">
-                Portfolio value over time
-              </p>
-
-            </div>
-
-          </div>
-
-          <PerformanceChart
-            data={performanceData}
-          />
-
-        </div>
-
-      </div>
-
-      {/* ====================================================
-          CURRENT ALLOCATION
-      ==================================================== */}
+      {/* CURRENT ALLOCATION */}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mt-6">
 
         <div className="flex items-center gap-3 mb-5">
 
           <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-
             <WalletCards
               className="text-indigo-600"
               size={20}
             />
-
           </div>
 
           <div>
-
             <h2 className="text-lg font-semibold text-slate-800">
               Current Allocation
             </h2>
@@ -796,7 +506,6 @@ function Dashboard() {
             <p className="text-sm text-slate-400">
               Allocation currently stored in your portfolio
             </p>
-
           </div>
 
         </div>
@@ -804,97 +513,75 @@ function Dashboard() {
         {holdings.length === 0 ? (
 
           <div className="text-center py-10">
-
             <p className="text-slate-400">
               No current holdings found.
             </p>
-
           </div>
 
         ) : (
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-            {holdings.map(
-              (holding) => {
+            {holdings.map((holding) => {
 
-                const percentage =
-                  Number(
-                    holding.weight ||
-                    0
-                  ) * 100;
+              const percentage =
+                Number(holding.weight || 0) * 100;
 
-                return (
-                  <div
-                    key={
-                      holding.asset_id
-                    }
-                    className="border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition"
-                  >
+              return (
+                <div
+                  key={holding.asset_id}
+                  className="border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition"
+                >
 
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3">
 
-                      <div>
+                    <div>
 
-                        <p className="font-semibold text-slate-800">
-                          {
-                            holding.asset_class ||
-                            "Unknown"
-                          }
-                        </p>
+                      <p className="font-semibold text-slate-800">
+                        {holding.asset_class || "Unknown"}
+                      </p>
 
-                        <p className="text-xs text-slate-400">
-                          {holding.asset_id
-                            ? `Asset ID: ${holding.asset_id}`
-                            : "--"}
-                        </p>
-
-                      </div>
-
-                      <span className="text-lg font-bold text-blue-600">
-
-                        {percentage.toFixed(
-                          2
-                        )}%
-
-                      </span>
+                      <p className="text-xs text-slate-400">
+                        {holding.asset_id
+                          ? `Asset ID: ${holding.asset_id}`
+                          : "--"}
+                      </p>
 
                     </div>
 
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-
-                      <div
-                        className="h-full bg-blue-600 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(
-                            percentage,
-                            100
-                          )}%`,
-                        }}
-                      />
-
-                    </div>
-
-                    <p className="text-sm text-slate-500 mt-3">
-
-                      ₹
-                      {(
-                        percentage /
-                        100 *
-                        totalCapital
-                      ).toLocaleString(
-                        "en-IN",
-                        {
-                          maximumFractionDigits: 0,
-                        }
-                      )}
-
-                    </p>
+                    <span className="text-lg font-bold text-blue-600">
+                      {percentage.toFixed(2)}%
+                    </span>
 
                   </div>
-                );
-              }
-            )}
+
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(
+                          percentage,
+                          100
+                        )}%`,
+                      }}
+                    />
+
+                  </div>
+
+                  <p className="text-sm text-slate-500 mt-3">
+                    ₹
+                    {(
+                      (percentage / 100) *
+                      totalCapital
+                    ).toLocaleString("en-IN", {
+                      maximumFractionDigits: 0,
+                    })}
+                  </p>
+
+                </div>
+              );
+            })}
 
           </div>
 
@@ -902,21 +589,17 @@ function Dashboard() {
 
       </div>
 
-      {/* ====================================================
-          RISK RULES
-      ==================================================== */}
+      {/* RISK RULES */}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mt-6">
 
         <div className="flex items-center gap-3 mb-5">
 
           <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-
             <ShieldAlert
               className="text-red-600"
               size={20}
             />
-
           </div>
 
           <div>
@@ -943,94 +626,77 @@ function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-            {riskRules.map(
-              (rule, index) => {
+            {riskRules.map((rule, index) => {
 
-                const current =
-                  Number(
-                    rule.currentValue ||
-                    0
-                  ) * 100;
+              const current =
+                Number(rule.currentValue || 0) * 100;
 
-                const threshold =
-                  Number(
-                    rule.threshold ||
-                    0
-                  );
+              const threshold =
+                Number(rule.threshold || 0);
 
-                const breached =
-                  rule.status ===
-                  "Breached";
+              const breached =
+                rule.status === "Breached";
 
-                return (
-                  <div
-                    key={`${rule.ruleName}-${index}`}
-                    className={`rounded-xl border p-4 ${
-                      breached
-                        ? "border-red-200 bg-red-50"
-                        : "border-slate-200 bg-slate-50"
-                    }`}
-                  >
+              return (
+                <div
+                  key={`${rule.ruleName}-${index}`}
+                  className={`rounded-xl border p-4 ${
+                    breached
+                      ? "border-red-200 bg-red-50"
+                      : "border-slate-200 bg-slate-50"
+                  }`}
+                >
 
-                    <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between">
 
-                      <p className="font-semibold text-slate-800">
-                        {rule.ruleName
-                          .replaceAll(
-                            "_",
-                            " "
-                          )
-                          .replace(
-                            /\b\w/g,
-                            (char) =>
-                              char.toUpperCase()
-                          )}
-                      </p>
+                    <p className="font-semibold text-slate-800">
+                      {rule.ruleName
+                        .replaceAll("_", " ")
+                        .replace(
+                          /\b\w/g,
+                          (char) => char.toUpperCase()
+                        )}
+                    </p>
 
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          breached
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {rule.status}
-                      </span>
-
-                    </div>
-
-                    <div className="mt-4">
-
-                      <p className="text-xs text-slate-500">
-                        Current
-                      </p>
-
-                      <p className="text-xl font-bold text-slate-800">
-                        {current.toFixed(
-                          2
-                        )}%
-                      </p>
-
-                    </div>
-
-                    <div className="mt-2">
-
-                      <p className="text-xs text-slate-500">
-                        Limit
-                      </p>
-
-                      <p className="text-sm font-semibold text-slate-700">
-                        {threshold.toFixed(
-                          2
-                        )}%
-                      </p>
-
-                    </div>
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        breached
+                          ? "bg-red-100 text-red-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {rule.status}
+                    </span>
 
                   </div>
-                );
-              }
-            )}
+
+                  <div className="mt-4">
+
+                    <p className="text-xs text-slate-500">
+                      Current
+                    </p>
+
+                    <p className="text-xl font-bold text-slate-800">
+                      {current.toFixed(2)}%
+                    </p>
+
+                  </div>
+
+                  <div className="mt-2">
+
+                    <p className="text-xs text-slate-500">
+                      Limit
+                    </p>
+
+                    <p className="text-sm font-semibold text-slate-700">
+                      {threshold.toFixed(2)}%
+                    </p>
+
+                  </div>
+
+                </div>
+              );
+            })}
 
           </div>
 
@@ -1038,9 +704,7 @@ function Dashboard() {
 
       </div>
 
-      {/* ====================================================
-          RECENT ALERTS
-      ==================================================== */}
+      {/* RECENT ALERTS */}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mt-6">
 
@@ -1049,12 +713,10 @@ function Dashboard() {
           <div className="flex items-center gap-3">
 
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-
               <ShieldAlert
                 className="text-amber-600"
                 size={20}
               />
-
             </div>
 
             <div>
@@ -1080,9 +742,7 @@ function Dashboard() {
           >
             {alerts.length > 0
               ? `${alerts.length} alert${
-                  alerts.length === 1
-                    ? ""
-                    : "s"
+                  alerts.length === 1 ? "" : "s"
                 }`
               : "No alerts"}
           </span>
@@ -1114,98 +774,80 @@ function Dashboard() {
 
             {alerts
               .slice(0, 5)
-              .map(
-                (alert) => (
+              .map((alert) => (
 
-                  <div
-                    key={
-                      alert.id
-                    }
-                    className={`rounded-xl border p-4 ${
-                      alert.severity ===
-                      "alert"
-                        ? "border-red-200 bg-red-50"
-                        : "border-amber-200 bg-amber-50"
-                    }`}
-                  >
+                <div
+                  key={alert.id}
+                  className={`rounded-xl border p-4 ${
+                    alert.severity === "alert"
+                      ? "border-red-200 bg-red-50"
+                      : "border-amber-200 bg-amber-50"
+                  }`}
+                >
 
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
 
-                      <div>
+                    <div>
 
-                        <p className="font-semibold text-slate-800">
-                          {alert.metric
-                            ?.replaceAll(
-                              "_",
-                              " "
-                            )
-                            .replace(
-                              /\b\w/g,
-                              (char) =>
-                                char.toUpperCase()
-                            ) ||
-                            "Risk Alert"}
-                        </p>
+                      <p className="font-semibold text-slate-800">
+                        {alert.metric
+                          ?.replaceAll("_", " ")
+                          .replace(
+                            /\b\w/g,
+                            (char) =>
+                              char.toUpperCase()
+                          ) ||
+                          "Risk Alert"}
+                      </p>
 
-                        <p className="text-sm text-slate-600 mt-1">
-                          {alert.message ||
-                            "Risk threshold breach detected."}
-                        </p>
-
-                      </div>
-
-                      <span
-                        className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                          alert.severity ===
-                          "alert"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {alert.severity ||
-                          "warning"}
-                      </span>
+                      <p className="text-sm text-slate-600 mt-1">
+                        {alert.message ||
+                          "Risk threshold breach detected."}
+                      </p>
 
                     </div>
 
-                    <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-500">
-
-                      <span>
-                        Threshold:{" "}
-                        {(
-                          Number(
-                            alert.threshold ||
-                            0
-                          ) * 100
-                        ).toFixed(
-                          2
-                        )}%
-                      </span>
-
-                      <span>
-                        Value:{" "}
-                        {(
-                          Number(
-                            alert.value ||
-                            0
-                          ) * 100
-                        ).toFixed(
-                          2
-                        )}%
-                      </span>
-
-                      <span>
-                        Action:{" "}
-                        {alert.action_taken ||
-                          "Alert raised"}
-                      </span>
-
-                    </div>
+                    <span
+                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                        alert.severity === "alert"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {alert.severity || "warning"}
+                    </span>
 
                   </div>
 
-                )
-              )}
+                  <div className="flex flex-wrap gap-4 mt-3 text-xs text-slate-500">
+
+                    <span>
+                      Threshold:{" "}
+                      {(
+                        Number(alert.threshold || 0) * 100
+                      ).toFixed(2)}
+                      %
+                    </span>
+
+                    <span>
+                      Value:{" "}
+                      {(
+                        Number(alert.value || 0) * 100
+                      ).toFixed(2)}
+                      %
+                    </span>
+
+                    <span>
+                      Action:{" "}
+                      {alert.action_taken ||
+                        "Alert raised"}
+                    </span>
+
+                  </div>
+
+                </div>
+
+              ))}
 
           </div>
 

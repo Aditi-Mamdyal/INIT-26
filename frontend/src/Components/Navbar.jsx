@@ -42,8 +42,8 @@ function Navbar({ setIsOpen, companyName, username }) {
             F
           </div>
 
-          <span className="text-xl font-bold text-slate-800">
-            Fin<span className="text-blue-600">Tech</span>
+          <span className="text-xl font-bold text-cyan-500">
+            Fin<span className="text-blue-900">Vision</span>
           </span>
         </div>
 

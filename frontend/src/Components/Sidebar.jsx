@@ -82,7 +82,7 @@ function Sidebar({
             {/* Logo Text */}
             <div>
               <h2 className="text-xl font-bold tracking-tight">
-                Fin<span className="text-blue-300">Tech</span>
+                Fin<span className="text-blue-300">Vision</span>
               </h2>
 
               <p className="text-xs text-slate-400">
