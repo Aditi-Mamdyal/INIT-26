@@ -102,5 +102,3 @@ not hardcoded — the same evaluation function checks them for both live
 monitoring and stress testing.
 
 ---
-```
-Create `.env`:
